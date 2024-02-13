@@ -1,3 +1,9 @@
+import template from './password-field.template'
 export default class PasswordField{
-  constructor(){}
+  template = template
+  constructor(){
+  }
+
+  render(){
+  }
 }
