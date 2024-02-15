@@ -1,6 +1,11 @@
-import App from './app';
-import './types';
+import App from "./app";
 
-const app = new App('#root',{title: 'Javascript & TypeScript Essential Chapter 5 - Sign up'});
+declare global {
+  interface Window {
+    Handlebars: any;
+  }
+}
+
+const app = new App("#root");
 
 app.render();

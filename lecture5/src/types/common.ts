@@ -1,13 +1,10 @@
-type AnyObject = {
+export type AnyObject = {
   [key: string]: any;
-}
+};
 
-type ValidateRule = {
+// ! 이름이 마음에 안드느데
+export type ValidateRule = {
   rule: RegExp;
   match: boolean;
   message: string;
-}
-
-
-export { AnyObject, ValidateRule };
-
+};

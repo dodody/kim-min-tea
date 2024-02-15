@@ -4,7 +4,7 @@ const template = `
 
     <div class="leading-loose">
       <form id="sign-up-form" class="max-w-xl m-4 p-10 bg-white rounded shadow-xl">
-        <p class="text-gray-800 font-medium mb-5 text-center">{{title}}</p>
+        <p class="text-gray-800 font-medium mb-5 text-center">Dody loves kim-min-tea 🍊</p>
         <div id="required-fields">
         
         </div>
