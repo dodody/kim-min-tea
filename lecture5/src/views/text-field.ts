@@ -26,8 +26,8 @@ export default class TextField {
   private data: Props;
   validateRule: ValidateRule[] = [];
   //
-  private valid: boolean;
-  private updated: boolean;
+  private valid: boolean = false;
+  private updated: boolean = false;
 
   constructor(container: string, data: Props) {
     this.container = container;
@@ -38,7 +38,26 @@ export default class TextField {
     }
   }
 
-  private onChange = (e: Event) => {};
+  private update() {
+    const container = document.querySelector(
+      `#field-${this.data.id}`
+    ) as HTMLElement;
+    const docFrag = document.createElement("div");
+
+    docFrag.innerHTML = this.template(this.buildData());
+    container.innerHTML = docFrag.children[0].innerHTML;
+  }
+
+  private onChange = (e: Event) => {
+    const { value, id } = e.target as HTMLInputElement;
+
+    console.log(id, value);
+    if (id === this.data.id) {
+      this.updated = true;
+      this.data.text = value;
+      this.update();
+    }
+  };
 
   private attachEventHandler() {
     document
@@ -51,7 +70,11 @@ export default class TextField {
     //
   }
 
-  private buildData = () => {};
+  private validate() {}
+
+  private buildData = () => {
+    const inInvalid = this.validate();
+  };
 
   // 솔직히 이 프로젝트에서는 append가 false인 상황이 있어야 하는 이유를 모르겠음.
   public render = () => {

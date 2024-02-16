@@ -7,7 +7,7 @@ export const RequireRule: ValidateRule = {
   message: "필수 입력 항목입니다.",
 };
 
-export const CantContainWithSpace: ValidateRule = {
+export const CantContainWhiteSpace: ValidateRule = {
   rule: /\s/,
   match: false,
   message: "공백을 포함할 수 없습니다.",
