@@ -6,6 +6,7 @@ interface Props {
   text?: string;
   require?: boolean;
   placeholder?: string;
+  strong? : 
 }
 
 const DefaultData = {
@@ -27,6 +28,13 @@ export default class PasswordField {
     this.data = { ...DefaultData, ...data };
     // !
     this.updated = false;
+  }
+
+  private update(){
+  }
+
+  private buildData(){
+
   }
 
   redner(append: boolean = false) {

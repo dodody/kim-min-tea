@@ -1,57 +1,78 @@
 import { RequireRule } from "../static/validation";
 import { ValidateRule } from "../types";
+import { nextTick } from "../utils";
 import template from "./text-field.template";
 
-interface Props {
+type Props = {
   id: string;
   label: string;
-  require?: boolean;
   type: "text" | "email" | "number";
-  text?: string;
   placeholder?: string;
-}
+  text?: string;
+  require: boolean;
+};
 
-const DefaultData = {
+const DefaultProps: Props = {
   id: "",
-  type: "text",
   text: "",
-  label: "",
-  require: true,
-  placeholer: "",
+  label: "label",
+  type: "text",
+  placeholder: "",
+  require: false,
 };
 
 export default class TextField {
   private template = template;
-  private container: string; // 여기는 왜 string인지 모르겟네
+  private container: string;
   private data: Props;
-  validateRule: ValidateRule[] = [];
   //
-  private valid: boolean = false;
   private updated: boolean = false;
+  private validateRules: ValidateRule[] = [];
 
   constructor(container: string, data: Props) {
     this.container = container;
-    this.data = { ...DefaultData, ...data };
+    this.data = { ...DefaultProps, ...data };
 
-    if (data.require) {
+    if (this.data.require) {
       this.addValidateRule(RequireRule);
     }
+
+    nextTick(this.attachEventHandler);
   }
 
-  private update() {
-    const container = document.querySelector(
-      `#field-${this.data.id}`
-    ) as HTMLElement;
-    const docFrag = document.createElement("div");
+  private validate = (): ValidateRule | null => {
+    const target = this.data.text ? this.data.text.trim() : "";
 
-    docFrag.innerHTML = this.template(this.buildData());
-    container.innerHTML = docFrag.children[0].innerHTML;
-  }
+    const invalidateRules = this.validateRules.filter(
+      (validateRule) => validateRule.rule.test(target) !== validateRule.match
+    );
+
+    return invalidateRules.length > 0 ? invalidateRules[0] : null;
+  };
+
+  private buildData = () => {
+    const isInvalid: ValidateRule | null = this.validate();
+
+    if (this.updated) {
+      return {
+        ...this.data,
+        updated: this.updated,
+        valid: !isInvalid,
+        validateMessage: !!isInvalid ? isInvalid.message : "",
+      };
+    } else {
+      return {
+        ...this.data,
+        updated: this.updated,
+        valid: true,
+        validateMessage: "",
+      };
+    }
+  };
 
   private onChange = (e: Event) => {
     const { value, id } = e.target as HTMLInputElement;
 
-    console.log(id, value);
     if (id === this.data.id) {
       this.updated = true;
       this.data.text = value;
@@ -59,30 +80,48 @@ export default class TextField {
     }
   };
 
-  private attachEventHandler() {
+  private attachEventHandler = () => {
     document
       .querySelector(this.container)
       ?.addEventListener("change", this.onChange);
-  }
-
-  public addValidateRule(rule: ValidateRule) {
-    this.validateRule.push(rule);
-    //
-  }
-
-  private validate() {}
-
-  private buildData = () => {
-    const inInvalid = this.validate();
   };
 
-  // 솔직히 이 프로젝트에서는 append가 false인 상황이 있어야 하는 이유를 모르겠음.
-  public render = () => {
+  private update = () => {
+    const container = document.querySelector(
+      `#field-${this.data.id}`
+    ) as HTMLElement;
+    const docFrag = document.createElement("div");
+
+    docFrag.innerHTML = this.template(this.buildData());
+    container.innerHTML = docFrag.children[0].innerHTML;
+  };
+
+  public get name(): string {
+    return this.data.id;
+  }
+
+  public get value(): string {
+    return this.data.text || "";
+  }
+
+  public get isValid(): boolean {
+    return !this.validate();
+  }
+
+  public addValidateRule = (rule: ValidateRule) => {
+    this.validateRules.push(rule);
+  };
+
+  public render = (append: boolean = false) => {
     const container = document.querySelector(this.container) as HTMLElement;
 
-    const divFragment = document.createElement("div");
-    divFragment.innerHTML = this.template(this.buildData());
+    if (append) {
+      const divFragment = document.createElement("div");
+      divFragment.innerHTML = this.template(this.buildData());
 
-    container.appendChild(divFragment.children[0]);
+      container.appendChild(divFragment.children[0]);
+    } else {
+      container.innerHTML = this.template(this.buildData());
+    }
   };
 }
