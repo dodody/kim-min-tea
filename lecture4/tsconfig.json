@@ -1,0 +1,12 @@
+{
+  "complieOptions": {
+    "strict": true,
+    "target": "ES5",
+    "module": "CommonJS",
+    "alwaysStrict": true,
+    "noImplictAny": true,
+    "noImplictThis": true,
+    "sourceMap": true,
+    "downlevelIteration": true
+  }
+}
