@@ -58,10 +58,19 @@ function updateView(html: string): void {
   }
 }
 
-function newsFeed(): void {
-  let newsFeed: tNewsFeed[] = store.feeds;
-  const newsList = [];
-  let template = `
+class News {
+  template: string;
+  constructor(template: string) {
+    this.template = template;
+  }
+}
+
+class NewsFeed extends News {
+  constructor() {
+    super();
+    let newsFeed: tNewsFeed[] = store.feeds;
+    const newsList = [];
+    let template = `
     <div class="bg-gray-600 min-h-screen">
       <div class="bg-white text-xl">
         <div class="mx-auto px-4">
@@ -86,12 +95,16 @@ function newsFeed(): void {
     </div>
   `;
 
-  if (newsFeed.length === 0) {
-    newsFeed = store.feeds = makeFeeds(getData<tNewsFeed[]>(NEWS_URL));
-  }
+    if (newsFeed.length === 0) {
+      newsFeed = store.feeds = makeFeeds(getData<tNewsFeed[]>(NEWS_URL));
+    }
 
-  for (let i = (store.currentPage - 1) * 10; i < store.currentPage * 10; i++) {
-    newsList.push(`
+    for (
+      let i = (store.currentPage - 1) * 10;
+      i < store.currentPage * 10;
+      i++
+    ) {
+      newsList.push(`
       <div class="p-6 ${
         newsFeed[i].read ? "bg-red-500" : "bg-white"
       } mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
@@ -114,16 +127,20 @@ function newsFeed(): void {
         </div>
       </div>    
     `);
+    }
+
+    template = template.replace("{{__news_feed__}}", newsList.join(""));
+    template = template.replace(
+      "{{__prev_page__}}",
+      `${store.currentPage > 1 ? store.currentPage - 1 : 1}`
+    );
+    template = template.replace(
+      "{{__next_page__}}",
+      `${store.currentPage + 1}`
+    );
+
+    updateView(template);
   }
-
-  template = template.replace("{{__news_feed__}}", newsList.join(""));
-  template = template.replace(
-    "{{__prev_page__}}",
-    `${store.currentPage > 1 ? store.currentPage - 1 : 1}`
-  );
-  template = template.replace("{{__next_page__}}", `${store.currentPage + 1}`);
-
-  updateView(template);
 }
 
 function newsDetail(): void {
