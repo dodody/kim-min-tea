@@ -75,34 +75,47 @@ applyApiMixins(NewsDetailApi, [Api]);
 class View {
   template: string;
   container: HTMLElement | null;
+  htmlList: string[];
+  // ! detail view에서 title 부분이 replace 되면 title 위치가 사라져다시 사용할 수 없으니, 원본 template를 가지고 있어야한다.
 
   constructor(template: string, containerId: string) {
+    const containerElement = document.getElementById(containerId);
+
+    if (containerElement === null) {
+      throw "최상위 컨테이너가 없어서 앱을 종료합니다.";
+    }
+
     this.template = template;
-    this.container = document.getElementById(containerId);
+    this.container = containerElement;
+    this.htmlList = [];
   }
 
-  protected replaceTemplate(k: string, v: string): void {}
-
-  protected makeFeeds(feeds: tNewsFeed[]): tNewsFeed[] {
-    for (let i = 0; i < feeds.length; i++) {
-      feeds[i].read = false;
-    }
-    return feeds;
+  addHtml(htmlString: string): void {
+    this.htmlList.push(htmlString);
   }
 
-  protected updateView(html: string): void {
-    if (this.container !== null) {
-      this.container.innerHTML = html;
-    } else {
-      console.error("최상위 컨테이너가 없어 UI를 진행하지 못합니다.");
-    }
+  getHtml(): string {
+    return this.htmlList.join("");
+  }
+
+  replaceTemplate(name: string, value: string): string {
+    return this.template.replace(`{{__${name}__}}`, value);
+  }
+
+  protected updateView(): void {
+    // ? this.container.innerHTML = html;
+    // ? 갑자기 이걸 왜 하는거지?
+    this.container.innerHTML = this.template;
   }
 }
 
+// 빈 배열에 html 문자열을 계속 추가해주는 방식
 class NewsFeedView extends View {
   newsFeed: tNewsFeed[] = store.feeds;
+  api: NewsFeedApi;
+  newsList: string[] = [];
 
-  constructor() {
+  constructor(containerId: string) {
     let template = `
     <div class="bg-gray-600 min-h-screen">
     <div class="bg-white text-xl">
@@ -127,16 +140,25 @@ class NewsFeedView extends View {
         </div>
         </div>
         `;
-    super(template);
 
-    const api = new NewsFeedApi();
+    super(template, containerId);
+
+    this.api = new NewsFeedApi();
+    this.newsFeed = this.api.getData();
+
     if (this.newsFeed.length === 0) {
-      this.newsFeed = store.feeds = this.makeFeeds(api.getData());
+      this.newsFeed = store.feeds;
+      this.makeFeeds();
+    }
+  }
+
+  makeFeeds(): void {
+    for (let i = 0; i < this.newsFeed.length; i++) {
+      this.newsFeed[i].read = false;
     }
   }
 
   render(): void {
-    let newsList = [];
     for (
       let i = (store.currentPage - 1) * 10;
       i < store.currentPage * 10;
@@ -144,7 +166,7 @@ class NewsFeedView extends View {
     ) {
       const { id, title, comments_count, user, points, time_ago, read } =
         this.newsFeed[i];
-      newsList.push(`
+      this.addHtml(`
       <div class="p-6 ${
         read ? "bg-red-500" : "bg-white"
       } mt-6 rounded-lg shadow-md transition-colors duration-500 hover:bg-green-100">
@@ -167,16 +189,13 @@ class NewsFeedView extends View {
     `);
     }
 
-    this.template = this.template.replace(
-      "{{__news_feed__}}",
-      newsList.join("")
-    );
-    this.template = this.template.replace(
-      "{{__prev_page__}}",
+    this.template = this.replaceTemplate("news_feed", this.getHtml());
+    this.template = this.replaceTemplate(
+      "prev_page",
       `${store.currentPage > 1 ? store.currentPage - 1 : 1}`
     );
-    this.template = this.template.replace(
-      "{{__next_page__}}",
+    this.template = this.replaceTemplate(
+      "next_page",
       `${store.currentPage + 1}`
     );
 
@@ -187,9 +206,11 @@ class NewsFeedView extends View {
 class NewsDetailView extends View {
   readonly id = location.hash.substr(7);
   newsContent: tNewsDetail;
+  api: NewsDetailApi;
 
-  constructor() {
-    super(template);
+  // ? this.newsContent.title, this.newsContent.content 를 {{__title__}}, {{__content__}} 이런 식으로 바꿔서 핸들링 하는데 그것 말고 다른 방식은 없을까?
+
+  constructor(containerId: string) {
     let template = `
     <div class="bg-gray-600 min-h-screen pb-8">
     <div class="bg-white text-xl">
@@ -206,18 +227,16 @@ class NewsDetailView extends View {
     </div>
     </div>
     </div>
-    
     <div class="h-full border rounded-xl bg-white m-6 p-4 ">
-    <h2>${this.newsContent.title}</h2>
-    <div class="text-gray-400 h-20">
-    ${this.newsContent.content}
-    </div>
-    
+    <h2>{{__title__}}</h2>
+    <div class="text-gray-400 h-20">{{__content__}}</div>
     {{__comments__}}
-    
     </div>
     </div>
     `;
+
+    super(template, containerId);
+    this.api = new NewsDetailApi();
   }
 
   render(): void {
@@ -230,17 +249,17 @@ class NewsDetailView extends View {
         break;
       }
     }
-    this.updateView(
-      this.template.replace("{{__comments__}}", this.makeComment())
-    );
+
+    this.updateView(this.replaceTemplate("comments", this.makeComment()));
+    this.updateView(this.replaceTemplate("title", this.newsContent.title));
+    this.updateView(this.replaceTemplate("content", this.newsContent.content));
   }
 
   makeComment(): string {
-    const commentString = [];
     const { comments } = this.newsContent;
     for (let i = 0; i < comments.length; i++) {
       const comment: tComment = comments[i];
-      commentString.push(`
+      this.addHtml(`
           <div style="padding-left: ${comment.level * 40}px;" class="mt-4">
             <div class="text-gray-400">
               <i class="fa fa-sort-up mr-2"></i>
@@ -250,22 +269,25 @@ class NewsDetailView extends View {
           </div>      
         `);
       if (comment.comments.length > 0) {
-        commentString.push(this.makeComment());
+        this.addHtml(this.makeComment());
       }
     }
-    return commentString.join("");
+    return this.getHtml();
   }
 }
 
 function router(): void {
   const routePath = location.hash;
+  const newsView = new NewsFeedView("root");
+  const newsDetailView = new NewsDetailView("root");
+
   if (routePath === "") {
-    newsFeed();
+    newsView.render();
   } else if (routePath.indexOf("#/page/") >= 0) {
     store.currentPage = Number(routePath.substr(7));
-    newsFeed();
+    newsView.render();
   } else {
-    newsDetail();
+    newsDetailView.render();
   }
 }
 
